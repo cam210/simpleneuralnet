@@ -1,0 +1,138 @@
+data <- read.csv("datahw4.csv")
+
+
+# necessary utility functions
+
+#RELU function:
+relu <- function(t){
+  return(pmax(t,0))
+}
+
+# 2-norm of a vector:
+norm_vec <- function(x) sqrt(sum(x^2))
+
+ElementwiseMultiply <- function ( a_, b_ )
+{
+  c_ = a_ ;
+  for ( i in 1:ncol(a_) )
+  {
+    c_[,i] = ( a_[,i] * b_ ) ;
+  }
+  return ( c_ );
+}
+
+
+
+#Initialize parameters:
+initialize_params <- function(tau, m){
+  a <- rnorm(m,0,tau^2)
+  b <- rnorm(m,0,tau^2)
+  w <- rnorm(m,0,tau^2)
+  return(matrix(c(a,b,w), ncol = 3))
+}
+
+theta <- initialize_params(1, 10)
+theta[,1]
+
+
+two_layer_nnet <- function(theta, x){
+  a <- theta[,1]
+  b <- theta[,2]
+  w <- theta[,3]
+  ones <- rep(1, length(x))
+  
+  return(t(a) %*% relu((w%*%t(x)) + b %*% t(ones)))
+}
+
+
+test <- two_layer_nnet(theta, data$x)
+
+
+
+loss <- function(n , x, y, lambda, theta){
+  a <- theta[,1]
+  w <- theta[,3]
+  return((1/2*n) * (sum(y - two_layer_nnet(theta,x))^2)  +(lambda/2) * ((norm_vec(a)^2) + (norm_vec(w)^2)))
+}
+
+x <- data$x
+y <- data$y
+test_loss <- loss(length(x), x, y , 0 , theta)
+
+
+
+return_RELU_input <- function(x,w,b) {
+  scalar_vector_prod <- x * w
+  output <- scalar_vector_prod + b
+  return(output)
+}
+
+
+is_greater_than_0 <- (v) {
+  
+}
+
+
+is_greater_than_0 <- function(v) {
+  if(v > 0) {
+    output <- 1
+  } else {
+    output <- 0
+  }
+  return(output)
+}
+
+indicator_based_function <- function(x,a, b, w, w_not_b){
+  expr_for_test.1 <- x*w + b
+  test <- pmax(expr_for_test, 0)
+  indicators <- sapply(test_pt.1, is_greater_than_0)
+  
+  
+  
+  if(w_not_b == TRUE) {
+    output <- (a * indicators) * x
+  } else {
+    output <- (a * indicators)
+  }
+  
+  
+  return(output)
+}
+
+
+
+
+#define function to compute the gradient matrix 
+compute_gradient_matrix <- function(n, x, y ,lambda, theta){
+  a <- theta[,1]
+  b <- theta[,2]
+  w <- theta[,3]
+  
+  
+  Relu_inputs <- sapply(x, return_RELU_input, w, b)
+  Relu_outputs <- apply(Relu_inputs, 2, relu)
+  estimate_errors <- two_layer_nnet(theta,x) - y
+  innerterm_a <- Relu_outputs %*% t(estimate_errors)
+  
+  gradient_vector_a <- ((1/n) * innerterm_a) + (lambda * a)
+  
+  
+  indicator_output_w <- sapply(x, indicator_based_function, a, b, w, TRUE)
+  indicator_output_b <- sapply(x, indicator_based_function, a, b, w, FALSE)
+  
+  innerterm_w <- indicator_output_w %*% t(estimate_errors)
+  innerterm_b <- indicator_output_b %*% t(estimate_errors)
+  
+  gradient_vector_w <- ((1/n) * innerterm_w) + (lambda * w)
+  gradient_vector_b <- ((1/n) * innerterm_b)
+  
+  gradient_matrix <- matrix(nrow = length(a), ncol = 3)
+  gradient_matrix[,1] <- gradient_vector_a
+  gradient_matrix[,2] <- gradient_vector_b
+  gradient_matrix[,3] <- gradient_vector_w
+  
+
+  return(gradient_matrix)
+}
+
+compute_gradient_matrix(10,x,y,0,theta)
